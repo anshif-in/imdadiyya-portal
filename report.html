@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Report Card</title>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f4f6f9;
+  padding:40px;
+}
+
+.card{
+  background:#fff;
+  padding:25px;
+  border-radius:12px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.1);
+  max-width:600px;
+  margin:auto;
+}
+
+h2{text-align:center;}
+
+.info{margin-bottom:10px;}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:15px;
+}
+
+table, th, td{
+  border:1px solid #ddd;
+}
+
+th, td{
+  padding:8px;
+  text-align:center;
+}
+
+.total{
+  font-size:18px;
+  font-weight:bold;
+  margin-top:15px;
+}
+
+.rank{
+  color:#2c7be5;
+  font-weight:bold;
+}
+
+.pass{color:green;font-weight:bold;}
+.fail{color:red;font-weight:bold;}
+
+button{
+  margin-top:15px;
+  padding:8px 12px;
+  background:#2c7be5;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#1a68d1;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card" id="reportCard">
+<h2>Report Card</h2>
+<div id="card"></div>
+<button onclick="downloadPDF()">Download PDF</button>
+</div>
+
+<script>
+
+const roll = new URLSearchParams(location.search).get("roll");
+
+if(!roll){
+  document.getElementById("card").innerHTML="Invalid Request";
+}
+
+fetch("https://script.google.com/macros/s/AKfycbw2xfn0GK8Iy1XL811sTuYbc1cqzOWXnZhjyQMYSrh71FiR_qDUpb3jDbETCE78Mhox/exec?roll="+encodeURIComponent(roll))
+.then(r=>r.json())
+.then(d=>{
+
+if(d.error){
+  document.getElementById("card").innerHTML="Student Not Found";
+  return;
+}
+
+let subjectsHtml = "";
+
+if(d.subjects){
+  subjectsHtml += "<table>";
+  subjectsHtml += "<tr><th>Subject</th><th>Marks</th></tr>";
+
+  for(let sub in d.subjects){
+    subjectsHtml += `
+      <tr>
+        <td>${sub}</td>
+        <td>${d.subjects[sub]}</td>
+      </tr>`;
+  }
+
+  subjectsHtml += "</table>";
+}
+
+let html = `
+<div class="info"><strong>Name:</strong> ${d.name}</div>
+<div class="info"><strong>Class:</strong> ${d.class}</div>
+<div class="info"><strong>Division:</strong> ${d.division}</div>
+<div class="info rank"><strong>Rank:</strong> ${d.rank}</div>
+
+${subjectsHtml}
+
+<div class="total">Total Marks: ${d.total}</div>
+
+<div class="${d.status=='PASSED'?'pass':'fail'}">
+<strong>Result:</strong> ${d.status}
+</div>
+`;
+
+
+document.getElementById("card").innerHTML = html;
+
+})
+.catch(()=>{
+document.getElementById("card").innerHTML="Server Error";
+});
+
+/* ================= PDF DOWNLOAD ================= */
+
+function downloadPDF(){
+
+  const content = document.getElementById("reportCard").innerHTML;
+
+  const win = window.open("", "", "height=700,width=900");
+  win.document.write("<html><head><title>Report Card</title></head><body>");
+  win.document.write(content);
+  win.document.write("</body></html>");
+  win.document.close();
+  win.print();
+}
+
+</script>
+
+</body>
+</html>
+

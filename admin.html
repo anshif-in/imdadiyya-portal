@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Dashboard</title>
+<style>
+body{font-family:Arial;background:#f4f6f9;padding:30px;}
+.card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.1);}
+input{padding:8px;margin:5px;border-radius:6px;border:1px solid #ccc;}
+button{padding:8px 12px;background:#2c7be5;color:#fff;border:none;border-radius:6px;cursor:pointer;}
+button:hover{background:#1a68d1;}
+table{width:100%;border-collapse:collapse;margin-top:15px;}
+th,td{padding:8px;border:1px solid #ddd;text-align:center;}
+th{background:#2c7be5;color:white;}
+.section{margin-top:20px;}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>Admin Dashboard</h2>
+
+<div>
+Password:
+<input type="password" id="pass">
+<button onclick="login()">Login</button>
+</div>
+
+<div id="panel" style="display:none">
+
+<div class="section">
+<h3>Search Student</h3>
+<input id="searchName" placeholder="Enter student name">
+<button onclick="search()">Search</button>
+</div>
+
+<div class="section">
+<h3>Bulk Upload (CSV)</h3>
+<input type="file" id="csvFile" accept=".csv">
+<button onclick="uploadCSV()">Upload</button>
+</div>
+
+<div class="section">
+<h3>Export Class</h3>
+Class:<input id="classInput" placeholder="Class">
+Division:<input id="divisionInput" placeholder="Division">
+<button onclick="exportData()">Export</button>
+</div>
+
+<div id="list"></div>
+
+</div>
+</div>
+
+<script>
+
+let isLoggedIn = false;
+
+function login(){
+const password = document.getElementById("pass").value.trim();
+if(!password){ alert("Enter password"); return; }
+
+fetch("https://script.google.com/macros/s/AKfycbw2xfn0GK8Iy1XL811sTuYbc1cqzOWXnZhjyQMYSrh71FiR_qDUpb3jDbETCE78Mhox/exec",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({type:"adminLogin",password:password})
+})
+.then(r=>r.json())
+.then(d=>{
+if(d.success){
+isLoggedIn = true;
+document.getElementById("panel").style.display="block";
+alert("Login Successful");
+}else{
+alert("Wrong Password");
+}
+})
+.catch(()=>alert("Server Error"));
+}
+
+function search(){
+if(!isLoggedIn) return alert("Login First");
+
+const name = document.getElementById("searchName").value.trim();
+if(!name){ alert("Enter student name"); return; }
+
+fetch("https://script.google.com/macros/s/AKfycbw2xfn0GK8Iy1XL811sTuYbc1cqzOWXnZhjyQMYSrh71FiR_qDUpb3jDbETCE78Mhox/exec?searchName="+encodeURIComponent(name))
+.then(r=>r.json())
+.then(d=>{
+if(d.students && d.students.length>0){
+renderTable(d.students);
+}else{
+document.getElementById("list").innerHTML="";
+alert("No Data Found");
+}
+})
+.catch(()=>alert("Server Error"));
+}
+
+function renderTable(data){
+let html="<table><tr><th>Class</th><th>Div</th><th>Roll</th><th>Name</th><th>Total</th><th>Delete</th></tr>";
+data.forEach(s=>{
+html+=`<tr>
+<td>${s.class}</td>
+<td>${s.division}</td>
+<td>${s.roll}</td>
+<td>${s.name}</td>
+<td>${s.total}</td>
+<td><button onclick="del('${s.roll}')">Delete</button></td>
+</tr>`;
+});
+html+="</table>";
+document.getElementById("list").innerHTML=html;
+}
+
+function del(r){
+if(!isLoggedIn) return alert("Login First");
+if(!confirm("Delete this record?")) return;
+
+fetch("https://script.google.com/macros/s/AKfycbw2xfn0GK8Iy1XL811sTuYbc1cqzOWXnZhjyQMYSrh71FiR_qDUpb3jDbETCE78Mhox/exec",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({type:"delete",roll:r})
+})
+.then(r=>r.json())
+.then(d=>{
+if(d.success){
+alert("Deleted Successfully");
+search();
+}else{
+alert("Delete Failed");
+}
+})
+.catch(()=>alert("Server Error"));
+}
+
+function uploadCSV(){
+if(!isLoggedIn) return alert("Login First");
+
+const fileInput = document.getElementById("csvFile");
+if(!fileInput.files.length){
+alert("Please select a CSV file");
+return;
+}
+
+const file=fileInput.files[0];
+const reader=new FileReader();
+
+reader.onload=function(e){
+let lines=e.target.result.trim().split("\n");
+let headers=lines[0].split(",");
+let records=[];
+
+for(let i=1;i<lines.length;i++){
+if(!lines[i]) continue;
+let obj={};
+let row=lines[i].split(",");
+headers.forEach((h,index)=>obj[h.trim()]=row[index]);
+records.push(obj);
+}
+
+fetch("https://script.google.com/macros/s/AKfycbw2xfn0GK8Iy1XL811sTuYbc1cqzOWXnZhjyQMYSrh71FiR_qDUpb3jDbETCE78Mhox/exec",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({type:"bulkUpload",records:records})
+})
+.then(r=>r.json())
+.then(d=>{
+if(d.success){
+alert("Bulk Upload Complete");
+fileInput.value="";
+}else{
+alert("Upload Failed");
+}
+})
+.catch(()=>alert("Server Error"));
+};
+
+reader.readAsText(file);
+}
+
+function exportData(){
+if(!isLoggedIn) return alert("Login First");
+
+const cls=document.getElementById("classInput").value.trim();
+const div=document.getElementById("divisionInput").value.trim();
+
+if(!cls || !div){
+alert("Enter Class and Division");
+return;
+}
+
+fetch(`https://script.google.com/macros/s/AKfycbw2xfn0GK8Iy1XL811sTuYbc1cqzOWXnZhjyQMYSrh71FiR_qDUpb3jDbETCE78Mhox/exec?exportClass=${encodeURIComponent(cls)}&division=${encodeURIComponent(div)}`)
+.then(r=>r.json())
+.then(d=>{
+if(!d.data || d.data.length===0){
+alert("No Data Found");
+return;
+}
+
+let csv="";
+d.data.forEach(row=>csv+=row.join(",")+"\n");
+
+let blob=new Blob([csv],{type:"text/csv"});
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="class_export.csv";
+a.click();
+})
+.catch(()=>alert("Server Error"));
+}
+
+</script>
+</body>
+</html>

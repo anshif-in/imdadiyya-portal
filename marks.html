@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Enter Marks</title>
+<style>
+body{
+  font-family:Arial;
+  background:#f4f6f9;
+  padding:30px;
+}
+.card{
+  background:#fff;
+  padding:20px;
+  border-radius:10px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.1);
+  width:400px;
+}
+input{
+  padding:6px;
+  margin:5px 0;
+  width:100%;
+}
+button{
+  padding:8px;
+  background:#2c7be5;
+  color:white;
+  border:none;
+  border-radius:5px;
+  width:100%;
+  cursor:pointer;
+}
+button:hover{background:#1a68d1;}
+.subject-row{margin-bottom:8px;}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h2>Enter Marks</h2>
+
+Class:<input id="classInput" onchange="loadSubjects()">
+Division:<input id="division">
+Roll:<input id="roll">
+Name:<input id="name">
+
+<div id="subjects"></div>
+
+<button onclick="save()">Save</button>
+</div>
+
+<script>
+
+/* ================= LOAD SUBJECTS ================= */
+
+function loadSubjects(){
+
+const className = document.getElementById("classInput").value.trim();
+if(!className) return;
+
+fetch("https://script.google.com/macros/s/AKfycbw2xfn0GK8Iy1XL811sTuYbc1cqzOWXnZhjyQMYSrh71FiR_qDUpb3jDbETCE78Mhox/exec?class="+encodeURIComponent(className))
+.then(r=>r.json())
+.then(d=>{
+
+const box=document.getElementById("subjects");
+box.innerHTML="";
+
+if(!d.subjects || d.subjects.length===0){
+box.innerHTML="No subjects found for this class";
+return;
+}
+
+d.subjects.forEach(s=>{
+box.innerHTML+=`
+<div class="subject-row">
+<label>${s}</label>
+<input type="number" min="0" max="100" id="sub_${s}">
+</div>`;
+});
+
+})
+.catch(()=>alert("Error loading subjects"));
+}
+
+/* ================= SAVE MARKS ================= */
+
+function save(){
+
+const className=document.getElementById("classInput").value.trim();
+const division=document.getElementById("division").value.trim();
+const roll=document.getElementById("roll").value.trim();
+const name=document.getElementById("name").value.trim();
+
+if(!className || !division || !roll || !name){
+alert("Please fill all fields");
+return;
+}
+
+let subs={};
+
+document.querySelectorAll("#subjects input").forEach(i=>{
+subs[i.id.replace("sub_","")] = i.value || 0;
+});
+
+fetch("https://script.google.com/macros/s/AKfycbw2xfn0GK8Iy1XL811sTuYbc1cqzOWXnZhjyQMYSrh71FiR_qDUpb3jDbETCE78Mhox/exec",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({
+type:"marks",
+class:className,
+division:division,
+roll:roll,
+name:name,
+subjects:subs
+})
+})
+.then(r=>r.json())
+.then(d=>{
+
+if(d.success){
+alert("Saved Successfully");
+
+// Clear form
+document.getElementById("roll").value="";
+document.getElementById("name").value="";
+document.querySelectorAll("#subjects input").forEach(i=>i.value="");
+
+}else if(d.error){
+alert(d.error);
+}else{
+alert("Error saving data");
+}
+
+})
+.catch(()=>alert("Server Error"));
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Student Login</title>
+<style>
+body{
+  font-family:Arial;
+  background:#f4f6f9;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.card{
+  background:#fff;
+  padding:30px;
+  border-radius:12px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.1);
+  width:350px;
+}
+input{
+  width:100%;
+  padding:10px;
+  margin:8px 0;
+  border:1px solid #ccc;
+  border-radius:6px;
+}
+button{
+  width:100%;
+  padding:10px;
+  background:#2c7be5;
+  color:white;
+  border:none;
+  border-radius:6px;
+  font-weight:bold;
+  cursor:pointer;
+}
+button:hover{background:#1a68d1;}
+a{text-decoration:none;color:#2c7be5;font-size:14px;}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h2>Student Login</h2>
+
+<input id="roll" placeholder="Roll Number">
+<input id="password" type="password" placeholder="Password">
+<input id="classInput" placeholder="Class">
+<input id="division" placeholder="Division">
+
+<button onclick="login()">Login</button>
+
+<br><br>
+<a href="?page=admin">Admin Login</a>
+</div>
+
+<script>
+
+function login(){
+
+const roll = document.getElementById("roll").value.trim();
+const password = document.getElementById("password").value.trim();
+const className = document.getElementById("classInput").value.trim();
+const division = document.getElementById("division").value.trim();
+
+if(!roll || !password || !className || !division){
+  alert("Please fill all fields");
+  return;
+}
+
+fetch("https://script.google.com/macros/s/AKfycbw2xfn0GK8Iy1XL811sTuYbc1cqzOWXnZhjyQMYSrh71FiR_qDUpb3jDbETCE78Mhox/exec",{
+  method:"POST",
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({
+    type:"login",
+    roll:roll,
+    password:password,
+    class:className,
+    division:division
+  })
+})
+.then(r=>r.json())
+.then(d=>{
+  if(d.success)
+    window.location="?page=report&roll="+encodeURIComponent(d.roll);
+  else
+    alert("Invalid Credentials");
+})
+.catch(()=>alert("Server Error"));
+}
+
+</script>
+
+</body>
+</html>
